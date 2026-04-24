@@ -3,10 +3,24 @@
     "epochs": [
         {
             "epoch": 1,
-            "train_loss": 0.1787,
-            "val_loss": 1.7316,
-            "val_accuracy": 0.4043,
-            "avg_grad_norm": 0.6597
+            "train_loss": 0.1717,
+            "val_loss": 1.634,
+            "val_accuracy": 0.4602,
+            "avg_grad_norm": 0.6358
+        },
+        {
+            "epoch": 2,
+            "train_loss": 0.0583,
+            "val_loss": 1.0087,
+            "val_accuracy": 0.673,
+            "avg_grad_norm": 0.3984
+        },
+        {
+            "epoch": 3,
+            "train_loss": 0.0321,
+            "val_loss": 0.7901,
+            "val_accuracy": 0.7468,
+            "avg_grad_norm": 0.3396
         }
     ]
 }
