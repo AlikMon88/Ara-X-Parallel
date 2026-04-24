@@ -21,6 +21,7 @@ def get_ara_prompt_e1():
     1. Read the most recent training logs using the available tools.
     2. Identify abnormal patterns in training behavior.
     3. Decide whether a debugging trigger is required.
+    4. Give proper and brief reasoning behind the trigger decision
 
     TRIGGER CONDITIONS (examples):
     - Loss becomes NaN
@@ -32,12 +33,12 @@ def get_ara_prompt_e1():
     OUTPUT FORMAT:
     Return ONLY valid JSON in the following schema:
 
-    {"utc_timestamp": "<ISO-8601 UTC time>", "epoch": "int", "is_trigger": true or false}
+    {"utc_timestamp": "<ISO-8601 UTC time>", "epoch": "<int>", "is_trigger": true or false, "trigger_reason": <str>}
 
     RULES:
     - Do not include explanations outside JSON.
     - Always include UTC timestamp.
-    - Always include current training epoch 
+    - Always include current training epoch, read it from the training logs
     - Always return valid JSON.
     """
     
@@ -63,7 +64,9 @@ def read_train_logs(train_path='model/logs/training_logs.json'):
     import json
     """reads the ml-model training-logs"""
     print('realtime-train-logs')
-    train_logs_json = json.load(train_path)
+    with open(train_path, 'r') as f:
+        train_logs_json = json.load(f)
+    f.close()
     return {'ml_model_training_logs': train_logs_json}
 
 ara.Job(
@@ -92,11 +95,20 @@ def run_ara_monitor_subprocess():
     pprint(output_decision)
     return {'ara_monitor_decision': output_decision}
 
-def run_ara_cloud_register():
-    subprocess.run(['ara', 'auth', 'login'])
-    print('ara-auth-login')
-    subprocess.run(['ara', 'run', 'agent/ara_agents/monitor.py', '--cron', '"*/5 * * * *"'], capture_output=True, text=True)
+def run_ara_cloud_register(is_auth=False):
+    if is_auth:
+        subprocess.run(['ara', 'auth', 'login'], 
+                        cwd=r"C:\Users\Alik\Desktop\M_1_year\Liquid-Net\AraXParallel-SDG") ## terminal/working directory-mismatch
+        print('ara-auth-login')
+    subprocess.run(['ara', 'run', 'agent/ara_agents/monitor.py', '--cron', '"*/5 * * * *"'], 
+                   capture_output=True, 
+                   text=True,
+                   cwd=r"C:\Users\Alik\Desktop\M_1_year\Liquid-Net\AraXParallel-SDG") ## terminal/working directory-mismatch
     print('registered-ara-cloud')
+
+def run_deregister_cloud():
+    subprocess.run(['ara', 'deploy', 'agent/ara_agents/monitor.py', '--activate', 'false'])
+    print('deregistered-ara-cloud')
 
 ## cyclic-run // trigger with patience (p)
 def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
@@ -104,6 +116,7 @@ def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
     
     ## runs N-cycles locally
     for i in range(10):
+        # run_ara_cloud_register()
         out_stream = run_ara_monitor_subprocess()
         with open(log_save_path, 'w') as f:    
             json.dump(out_stream, f)
@@ -121,14 +134,16 @@ def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
             if out_stream_decision["is_trigger"]:
                 print('<Parallel> Triggered & Running ...')
             run_adjoin_code_parallel(is_train=False)
-            
+        
+        # run_deregister_cloud() ## cause the cloud registered state is fixed in the runtime
         time.sleep(5*60) ## force 5mins retrieval-wait
 
 if __name__ == '__main__':
     print('__running__ara/monitor___')
     
     ## ara-cloud-register
-    run_ara_cloud_register()
+    run_ara_cloud_register(is_auth=True)
     ## local-cyclic-monitoring
     save_ara_logs()
     
+    run_deregister_cloud()
