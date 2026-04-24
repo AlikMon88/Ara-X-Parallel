@@ -4,6 +4,9 @@ import ara_sdk as ara
 import json
 import subprocess
 import time
+from pprint import pprint
+import re
+import os
 
 def get_ara_prompt_e1():
     system_instructions = """
@@ -39,48 +42,86 @@ def get_ara_prompt_e1():
     
     return system_instructions
 
+def run_adjoin_code_parallel(train_file_path='model/sample_train_2.py', stream_file_path='main_stream.py', is_train=True):
+    if is_train:
+        print('Training the model ...')
+        subprocess.run(['python', train_file_path], check=True)
+    else:
+        print('loaded trained logs')
+        
+    subprocess.run(['streamlit', 'run', stream_file_path])
+
 @ara.tool
-def utc_now() -> dict:
+def utc_now():
     from datetime import datetime, timezone
+    """provides the UTC time"""
     return {"utc_time": datetime.now(timezone.utc).isoformat()}
 
 @ara.tool
 def read_train_logs(train_path='model/logs/training_logs.json'):
+    import json
     """reads the ml-model training-logs"""
     print('realtime-train-logs')
     train_logs_json = json.load(train_path)
     return {'ml_model_training_logs': train_logs_json}
 
-ara.Automation(
+ara.Job(
     "ara-monitor-agent", ## triggers on train-errors
-    system_instructions=get_ara_prompt_e1(),
-    tools=[utc_now, read_train_logs]
+    system_instructions=(get_ara_prompt_e1())
 )
+
+def clean_ara_stdout(stdout):
+    match = re.search(r'\{.*\}', stdout, re.DOTALL)
+    if match:
+        json_text = match.group()
+        decision = json.loads(json_text)
+        return decision
+    else:
+        print("No JSON found in output")
+        return None
 
 ## do a seperate one-off ara-cloud call cause logs streams don't work | This needs to be crontabbed/cycled locally
 def run_ara_monitor_subprocess():
-    output_decision = subprocess.run(['ara', 'run', 'agent/ara_agents/monitor.py'], capture_output=True, text=True)
-    output_decision = json.loads(output_decision.stdout)
+    output_decision = subprocess.run(['ara', 'run', 'agent/ara_agents/monitor.py'], 
+                                     capture_output=True, 
+                                     text=True,
+                                     cwd=r"C:\Users\Alik\Desktop\M_1_year\Liquid-Net\AraXParallel-SDG") ## terminal/working directory-mismatch
+    output_decision = clean_ara_stdout(output_decision.stdout)
+    print(' --- output-decision --- ')
+    pprint(output_decision)
     return {'ara_monitor_decision': output_decision}
 
 def run_ara_cloud_register():
     subprocess.run(['ara', 'auth', 'login'])
     print('ara-auth-login')
-    subprocess.run(['ara', 'run', 'agent/ara_agents/monitor.py', '--cron', "*/5 * * * *"], capture_output=True, text=True)
+    subprocess.run(['ara', 'run', 'agent/ara_agents/monitor.py', '--cron', '"*/5 * * * *"'], capture_output=True, text=True)
     print('registered-ara-cloud')
 
-## cyclic-run
-def save_ara_logs(log_save_path='logs'):
+## cyclic-run // trigger with patience (p)
+def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
     """returns decision logs"""
+    
     ## runs N-cycles locally
-    for i in range(100):
-        out_stream = run_ara_monitor_subprocess()    
-        json.dump(out_stream, log_save_path)
-        print(f'saved-ara-out-decision-stream#{i+1}')
-        time.sleep(30) ## 30-seconds
+    for i in range(10):
+        out_stream = run_ara_monitor_subprocess()
+        with open(log_save_path, 'w') as f:    
+            json.dump(out_stream, f)
+        f.close()
+        
+        print()
+        print(f'saved-ara-out-decision-stream # {i+1}')
+        print()
+        
+        ## parallel-execution-trigger
+        if out_stream["ara_monitor_decision"]["result"]["output_text"]:
+            print('<Parallel> Triggered & Running ...')
+            run_adjoin_code_parallel(is_train=False)
+            
+        time.sleep(5*60) ## force 5mins retrieval-wait
 
 if __name__ == '__main__':
     print('__running__ara/monitor___')
+    
     ## ara-cloud-register
     run_ara_cloud_register()
     ## local-cyclic-monitoring

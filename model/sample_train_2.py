@@ -113,11 +113,21 @@ def train_imbalanced_mnist():
             "val_accuracy": round(val_acc, 4),
             "avg_grad_norm" : round(avg_grad_norm, 4)
         })
-        print(f"Epoch {epoch + 1}/{epochs_len + 1} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f}")
+        
+        ## realtime-state-logging
+        with open("model/logs/training_logs.json", "w") as f:
+            json.dump(logs, f, indent=4)
+        torch.save(model.state_dict(), "model/models_save/model.pth")
+    
+        print(f"Epoch {epoch}/{epochs_len} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f}")
 
-    with open("model/logs/training_logs.json", "w") as f:
-        json.dump(logs, f, indent=4)
-    torch.save(model.state_dict(), "model/models_save/model.pth")
+        ## forceful-delayed-execution
+        time.sleep(3*60)
+        
+    # with open("model/logs/training_logs.json", "w") as f:
+    #     json.dump(logs, f, indent=4)
+    # torch.save(model.state_dict(), "model/models_save/model.pth")
+    
     print("\nTraining Complete. Saved 'model.pth' and 'training_logs.json'.")
     
 if __name__ == "__main__":
