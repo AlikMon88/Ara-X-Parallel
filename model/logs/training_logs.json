@@ -21,6 +21,13 @@
             "val_loss": 0.7901,
             "val_accuracy": 0.7468,
             "avg_grad_norm": 0.3396
+        },
+        {
+            "epoch": 4,
+            "train_loss": 0.0193,
+            "val_loss": 0.6239,
+            "val_accuracy": 0.8094,
+            "avg_grad_norm": 0.2669
         }
     ]
 }

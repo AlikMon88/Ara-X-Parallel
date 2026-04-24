@@ -32,11 +32,12 @@ def get_ara_prompt_e1():
     OUTPUT FORMAT:
     Return ONLY valid JSON in the following schema:
 
-    {"utc_timestamp": "<ISO-8601 UTC time>", "is_trigger": true or false}
+    {"utc_timestamp": "<ISO-8601 UTC time>", "epoch": "int", "is_trigger": true or false}
 
     RULES:
     - Do not include explanations outside JSON.
     - Always include UTC timestamp.
+    - Always include current training epoch 
     - Always return valid JSON.
     """
     
@@ -112,9 +113,13 @@ def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
         print(f'saved-ara-out-decision-stream # {i+1}')
         print()
         
-        ## parallel-execution-trigger
-        if out_stream["ara_monitor_decision"]["result"]["output_text"]:
-            print('<Parallel> Triggered & Running ...')
+        out_stream_decision = clean_ara_stdout(out_stream["ara_monitor_decision"]["result"]["output_text"])
+        
+        ## min-epoch-execution-patience
+        if out_stream_decision['epoch'] > 3: ## epoch-threshold (tune)            
+            ## parallel-execution-trigger
+            if out_stream_decision["is_trigger"]:
+                print('<Parallel> Triggered & Running ...')
             run_adjoin_code_parallel(is_train=False)
             
         time.sleep(5*60) ## force 5mins retrieval-wait
