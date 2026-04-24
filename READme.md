@@ -1,4 +1,4 @@
-# Parallel × Ara
+# << Parallel × Ara >>
 
 ### Agentic Semantic Debugging for ML Pipelines
 
