@@ -1,0 +1,47 @@
+1. Data Integrity & Distributional Shifts
+Logical errors often start at the data level. If your preprocessing logic shifts the distribution in an unintended way, the model is doomed before it even sees a gradient.
+
+Feature Statistics (Pre vs. Post): Trace the mean, variance, and null counts of features before and after transformations (e.g., scaling, imputation).
+
+Categorical Cardinality: Monitor if a transformation (like One-Hot Encoding) unexpectedly explodes the feature space or drops rare but vital categories.
+
+Data Leakage Indicators: Trace the correlation between features and the target variable across different splits. If a feature suddenly has a 0.99 correlation in the training set but 0.02 in validation, your agent should flag a potential leak.
+
+2. Structural & Semantic Shape Transitions
+In complex pipelines (especially in NLP or Computer Vision), tensors are reshaped, permuted, and squeezed constantly.
+
+Dimension Semantics: Don't just trace (64, 128, 512). Trace what those dimensions represent (Batch, Sequence, Embedding). Logical bugs often arise from "accidental broadcasting" where PyTorch or NumPy performs operations on mismatched dimensions that happen to be compatible mathematically but not logically.
+
+Masking Integrity: If your agent is debugging Transformers, it must trace the Attention Masks. A common logical bug is applying the mask incorrectly, allowing the model to "see the future" during training.
+
+3. The "Inner Monologue" (Model Dynamics)
+To understand why a model isn't learning, the agent needs to peer into the training loop's internals.
+
+Gradient Norms & Flow: Trace the magnitude of gradients across layers. This helps the agent identify Vanishing or Exploding Gradients without waiting for the loss to hit NaN.
+
+Dead Neurons/Activation Sparsity: In ReLU-heavy networks, trace the percentage of zero-activations. If 90% of a layer is "dead," the logical structure of your architecture is likely bottlenecked.
+
+Weight Update Ratio: Trace the ratio of the update magnitude to the weight magnitude. If this ratio is too small, the model isn't learning; if it's too large, the training is unstable.
+
+4. Evaluation & Metric Logic
+Logic errors often hide in how we measure success.
+
+Loss Component Breakdown: For multi-task learning or GANs, trace each component of the loss function separately. Often, one loss term dominates and "starves" the others, a logical imbalance that a global loss value won't show.
+
+Sample-Level Attributions: Trace which specific inputs are driving the highest loss. If the agent sees the model consistently failing on a specific sub-population (e.g., short text vs. long text), it can infer a logical gap in the feature engineering.
+
+Prediction Distributions: Trace the histogram of predicted probabilities. A logical bug in the final Softmax or a class imbalance issue often manifests as a "calibrated" model that only ever predicts the majority class.
+
+5. Execution Context & Lineage
+Finally, the agent needs the "paper trail" to reconstruct the crime scene.
+
+Hyperparameter Lineage: Every trace must be keyed to a specific configuration (LR, batch size, weight decay).
+
+Environment Metadata: Trace library versions (a scikit-learn update can change default behavior) and hardware state.
+
+
+The Three-Layer Observer Pattern
+
+The Proxy Layer: Intercepts low-level calls (e.g., __torch_function__ or numpy dispatch).
+The Semantic Buffer: A rolling window of the last $N$ operations, storing not just values, but "Physical Invariants" (mean, rank, sparsity, gradient ACF).
+The Reasoning Loop: An asynchronous process that compares the current buffer against a library of ML Pathologies (like shattering gradients or posterior collapse).

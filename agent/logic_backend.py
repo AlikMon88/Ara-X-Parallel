@@ -83,8 +83,6 @@ def main_run_shap_analysis(model_path: str = "model/models_save/model.pth"):
         shap_values = explainer.shap_values(test_samples)
 
         # TRANSLATE TO LLM TEXT: Aggregate spatial importance
-        # shap_values shape for PyTorch: list of length 10 (classes). Each is (10_samples, 1, 28, 28)
-        # We take absolute values and average across classes, samples, and channels to get a 28x28 heat map
         shap_numpy = np.abs(np.array(shap_values)) 
         ## avg-across-the-classes too
         shap_numpy = np.mean(shap_numpy, axis=-1)

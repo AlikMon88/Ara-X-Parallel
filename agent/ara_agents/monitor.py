@@ -8,6 +8,8 @@ from pprint import pprint
 import re
 import os
 
+_cwd__ = os.getcwd()
+
 def get_ara_prompt_e1():
     system_instructions = """
     ROLE:
@@ -33,12 +35,13 @@ def get_ara_prompt_e1():
     OUTPUT FORMAT:
     Return ONLY valid JSON in the following schema:
 
-    {"utc_timestamp": "<ISO-8601 UTC time>", "epoch": "<int>", "is_trigger": true or false, "trigger_reason": <str>}
+    {"utc_timestamp": "<ISO-8601 UTC time>", "epoch": "<int>", "train_loss": <float>, "is_trigger": true or false, "trigger_reason": <str>}
 
     RULES:
     - Do not include explanations outside JSON.
     - Always include UTC timestamp.
     - Always include current training epoch, read it from the training logs
+    - Always include current training loss, read it from the training logs
     - Always return valid JSON.
     """
     
@@ -107,7 +110,8 @@ def run_ara_cloud_register(is_auth=False):
     print('registered-ara-cloud')
 
 def run_deregister_cloud():
-    subprocess.run(['ara', 'deploy', 'agent/ara_agents/monitor.py', '--activate', 'false'])
+    subprocess.run(['ara', 'deploy', 'agent/ara_agents/monitor.py', '--activate', 'false'],
+                   cwd=r"C:\Users\Alik\Desktop\M_1_year\Liquid-Net\AraXParallel-SDG")
     print('deregistered-ara-cloud')
 
 ## cyclic-run // trigger with patience (p)
@@ -116,8 +120,12 @@ def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
     
     ## runs N-cycles locally
     for i in range(10):
-        # run_ara_cloud_register()
+        
+        run_deregister_cloud()
+        run_ara_cloud_register(is_auth=False)
+        
         out_stream = run_ara_monitor_subprocess()
+        
         with open(log_save_path, 'w') as f:    
             json.dump(out_stream, f)
         f.close()
@@ -142,8 +150,9 @@ if __name__ == '__main__':
     print('__running__ara/monitor___')
     
     ## ara-cloud-register
-    run_ara_cloud_register(is_auth=True)
+    # run_ara_cloud_register(is_auth=True)
+
     ## local-cyclic-monitoring
     save_ara_logs()
     
-    run_deregister_cloud()
+    # run_deregister_cloud()
