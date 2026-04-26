@@ -149,10 +149,10 @@ def save_ara_logs(log_save_path='agent/ara_agents/logs/decision_logs.json'):
 if __name__ == '__main__':
     print('__running__ara/monitor___')
     
-    ## ara-cloud-register
-    # run_ara_cloud_register(is_auth=True)
+    # ## ara-cloud-register
+    run_ara_cloud_register(is_auth=True)
 
-    ## local-cyclic-monitoring
+    # ## local-cyclic-monitoring
     save_ara_logs()
     
-    # run_deregister_cloud()
+ 
