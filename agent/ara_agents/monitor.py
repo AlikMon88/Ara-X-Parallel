@@ -319,40 +319,17 @@ if __name__ == '__main__':
                 run_adjoin_code_parallel(is_train=False)
             
             # run_deregister_cloud() ## cause the cloud registered state is fixed in the runtime
-            time.sleep(5*60) ## force 5mins retrieval-wait
+            time.sleep(10) ## force 5mins retrieval-wait
     
     ## serve-local-api-endpoint
     api_serve() ## local:8000 port
     
-    # # ## ara-cloud-register
-    # run_ara_cloud_register(is_auth=True)
+    # ## ara-cloud-register
+    run_ara_cloud_register(is_auth=True)
 
-    # # ## local-cyclic-monitoring
-    # save_ara_logs()
+    # ## local-cyclic-monitoring
+    save_ara_logs()
     
-    # run_deregister_cloud()
+    run_deregister_cloud()
 
-    def read_train_logs():
-        """returns the ml-model training-logs"""
-        import json
-        from urllib.request import urlopen
-        
-        print('realtime-train-logs-read')
-        
-        # LOCAL_IP = "192.168.1.100"
-        # PUBLIC_IP = "2409:4060:2e14:51b4:6187:b0a4:c632:18dd"
-        NGROK_TUNNEL = "https://eggshell-wrecking-jingle.ngrok-free.dev"
-        # api_path = f"http://[{PUBLIC_IP}]:8000/training_logs"
-        api_path = f"{NGROK_TUNNEL}/training_logs"
-        try:
-            with urlopen(api_path) as response:
-                train_logs_json = json.loads(response.read().decode())    
-            train_logs_json = train_logs_json['epochs']
-                    
-            return {'ml_model_training_logs': train_logs_json}
-        
-        except Exception as e:
-            print("ACTUAL ERROR:", repr(e))
-            raise e                        
-    time.sleep(100000)
-    # read_train_logs()                     
+    

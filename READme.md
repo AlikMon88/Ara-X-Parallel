@@ -117,7 +117,8 @@ python models/sample_train_2.py
 Start monitoring:
 
 ```bash
-python agent/ara_agents/monitor.py
+python agent/ara_agents/monitor.py ## starts the API-rest
+ngrok http <PORT> ## for API-serve-tunneling
 ```
 
 Parallel will automatically trigger when failures are detected.
