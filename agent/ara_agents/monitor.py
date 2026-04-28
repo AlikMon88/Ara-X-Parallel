@@ -8,15 +8,19 @@ from pprint import pprint
 import re
 import os
 from pathlib import Path
+from fastapi import FastAPI
+import threading
+import uvicorn
 
 _cwd_ = os.getcwd()
 BASE_DIR = Path(__file__).resolve().parents[2]
+api_app = FastAPI()
 
 MODEL_TRAIN_FILE_PATH = BASE_DIR / "model" / "sample_train_2.py"
 STREAM_FILE_PATH = BASE_DIR / "main_stream.py"
 TRAIN_LOG_FILE_PATH = BASE_DIR / "model" / "logs" / "training_logs.json"
 DECISION_LOG_SAVE_PATH = BASE_DIR / "agent" / "ara_agents" / "logs" / "decision_logs.json"
-
+LOCAL_IP = "192.168.1.100"
 
 def get_ara_prompt_e1():
     system_instructions = """
@@ -197,15 +201,32 @@ def utc_now():
     """provides the UTC time"""
     return {"utc_time": datetime.now(timezone.utc).isoformat()}
 
-@ara.tool
-def read_train_logs(train_path=TRAIN_LOG_FILE_PATH):
+## GET-REST-call
+@api_app.get('/training_logs')
+def get_train_logs_api(train_path=TRAIN_LOG_FILE_PATH):
     import json
-    """reads the ml-model training-logs"""
-    print('realtime-train-logs')
     with open(train_path, 'r') as f:
         train_logs_json = json.load(f)
     f.close()
+    return train_logs_json
+
+## serve
+def api_serve(port=8000):
+    print(f'serving-train-log-API at {LOCAL_IP}:{port}')
+    def api_run():
+        uvicorn.run(api_app, host="0.0.0.0", port=port)
+    # start API in background thread
+    threading.Thread(target=api_run, daemon=True).start()
+
+
+@ara.tool
+def read_train_logs():
+    import requests
+    """reads the ml-model training-logs / API-call"""
+    print('realtime-train-logs')
+    train_logs_json = requests.get(f"http://{LOCAL_IP}:8000/training_logs").json()
     train_logs_json = train_logs_json['epochs']
+    
     return {'ml_model_training_logs': train_logs_json}
 
 ara.Job(
@@ -257,9 +278,6 @@ def save_ara_logs(log_save_path=DECISION_LOG_SAVE_PATH):
     ## runs N-cycles locally
     for i in range(10):
         
-        run_deregister_cloud()
-        run_ara_cloud_register(is_auth=False)
-        
         out_stream = run_ara_monitor_subprocess()
         
         with open(log_save_path, 'w') as f:    
@@ -285,10 +303,14 @@ def save_ara_logs(log_save_path=DECISION_LOG_SAVE_PATH):
 if __name__ == '__main__':
     print('__running__ara/monitor___')
     
+    ## serve-local-api-endpoint
+    api_serve() ## local:8000 port
+    
     # ## ara-cloud-register
     run_ara_cloud_register(is_auth=True)
 
     # ## local-cyclic-monitoring
     save_ara_logs()
     
+    run_deregister_cloud()
  
