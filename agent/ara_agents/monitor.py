@@ -79,8 +79,7 @@ def get_ara_prompt_e2():
     The tool returns a JSON object in this structure:
 
     {
-    "ml_model_training_logs": {
-        "epochs": [
+    "ml_model_training_logs": [
             {
             "epoch": <int>,
             "train_loss": <float>,
@@ -89,7 +88,6 @@ def get_ara_prompt_e2():
             "avg_grad_norm": <float>
             }, ...
             ]
-        }
     }
 
     IMPORTANT:
@@ -214,20 +212,30 @@ def get_train_logs_api(train_path=TRAIN_LOG_FILE_PATH):
 def api_serve(port=8000):
     print(f'serving-train-log-API at {LOCAL_IP}:{port}')
     def api_run():
-        uvicorn.run(api_app, host="0.0.0.0", port=port)
+        uvicorn.run(api_app, host=LOCAL_IP, port=port)
     # start API in background thread
     threading.Thread(target=api_run, daemon=True).start()
 
-
 @ara.tool
 def read_train_logs():
-    import requests
-    """reads the ml-model training-logs / API-call"""
-    print('realtime-train-logs')
-    train_logs_json = requests.get(f"http://{LOCAL_IP}:8000/training_logs").json()
-    train_logs_json = train_logs_json['epochs']
+    """reads the ml-model training-logs"""
+    import json
+    from urllib.request import urlopen
     
-    return {'ml_model_training_logs': train_logs_json}
+    print('realtime-train-logs-read')
+    
+    LOCAL_IP = "192.168.1.100"
+    api_path = f"http://{LOCAL_IP}:8000/training_logs"
+    try:
+        with urlopen(api_path) as response:
+            train_logs_json = json.loads(response.read().decode())    
+        train_logs_json = train_logs_json['epochs']
+        
+        return {'ml_model_training_logs': train_logs_json}
+    
+    except Exception as e:
+        print("ACTUAL ERROR:", repr(e))
+        raise e                        
 
 ara.Job(
     "ara-monitor-agent", ## triggers on train-errors
