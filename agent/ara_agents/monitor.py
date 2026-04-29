@@ -197,10 +197,8 @@ def read_train_logs():
     
     print('realtime-train-logs-read')
     
-    # LOCAL_IP = "192.168.1.100"
-    # PUBLIC_IP = "2409:4060:2e14:51b4:6187:b0a4:c632:18dd"
+    
     NGROK_TUNNEL = "https://eggshell-wrecking-jingle.ngrok-free.dev"
-    # api_path = f"http://[{PUBLIC_IP}]:8000/training_logs"
     api_path = f"{NGROK_TUNNEL}/training_logs"
     try:
         with urlopen(api_path) as response:

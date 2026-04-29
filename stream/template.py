@@ -6,9 +6,11 @@ from agent.logic import *
 from agent.logic_backend import *
 from langchain_core.messages import HumanMessage, AIMessage
 import sys
-
 from . import prompts as pmp    
+from pathlib import Path
 
+_BASE_DIR_ = Path(__file__).parents[0]
+STORE_FINAL_RESPONSE = _BASE_DIR_ / 'stream_output' / 'final_response.txt'
             
 ### Parallel-Stream-FrontEnd
 def render_agent_stream(agent, messages):
@@ -139,6 +141,10 @@ def stream_frontend_parallel(load_llm):
                 sys.exit()
             
             st.session_state.chat_history.append(AIMessage(content=final_report))
+            with open(STORE_FINAL_RESPONSE, 'wb') as f:
+                pkl.dump(final_report, f)
+            f.close()
+            print('saved-final-response')
             status.update(label="Diagnosis Complete!", state="complete", expanded=False)
                 
     for msg in st.session_state.chat_history:
@@ -164,4 +170,9 @@ def stream_frontend_parallel(load_llm):
 if __name__ == '__main__':
     llm = load_llm(model_name='openai')
     
+    # with open(STORE_FINAL_RESPONSE, 'w') as f:
+    #     pkl.dump('abc', f)
+        
+    
+        
     
