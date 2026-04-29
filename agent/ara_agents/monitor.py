@@ -246,10 +246,9 @@ def read_previous_state_llm_summary():
     api_path = f"{NGROK_TUNNEL}/llm_cache"
     try:
         with urlopen(api_path) as response:
-            logs_json = json.loads(response.read().decode())    
+            logs_llm = json.loads(response.read().decode())    
         ## previous-state-cache
-        logs_llm = logs_json['ara_monitor_decision']['result']['output_text']['updated_state_summary']
-        return {'previous_state_llm_summary_cache': logs_llm}
+        return logs_llm
     
     except Exception as e:
         print("ACTUAL ERROR:", repr(e))
@@ -268,7 +267,6 @@ def retrieve_prior_run_context():
     try:
         with urlopen(api_path) as response:
             train_logs_context = json.loads(response.read().decode())    
-            
         return train_logs_context
     
     except Exception as e:
@@ -387,7 +385,7 @@ if __name__ == '__main__':
         call_patience = 0
         
         ## runs N-cycles locally
-        for i in range(10):
+        for i in range(20):
             
             out_stream = run_ara_monitor_subprocess()
             
@@ -406,8 +404,8 @@ if __name__ == '__main__':
                 ## parallel-execution-trigger
                 if out_stream_decision["is_trigger"]:
                     print('<Parallel> Triggered & Running ...')
-                    run_adjoin_code_parallel(is_train=False)
-                    call_patience = 0
+                run_adjoin_code_parallel(is_train=False)
+                call_patience = 0
             
             # run_deregister_cloud() ## cause the cloud registered state is fixed in the runtime
             call_patience += 1
