@@ -7,7 +7,8 @@ from pprint import pprint
 import re
 import os
 from pathlib import Path
-
+import pickle as pkl
+# from ara_prompts import *
 
 _cwd_ = os.getcwd()
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -16,176 +17,201 @@ MODEL_TRAIN_FILE_PATH = BASE_DIR / "model" / "sample_train_2.py"
 STREAM_FILE_PATH = BASE_DIR / "main_stream.py"
 TRAIN_LOG_FILE_PATH = BASE_DIR / "model" / "logs" / "training_logs.json"
 DECISION_LOG_SAVE_PATH = BASE_DIR / "agent" / "ara_agents" / "logs" / "decision_logs.json"
+PRIOR_CONTEXT_PATH = BASE_DIR / "stream" / "stream_output" / "final_response.txt" 
 LOCAL_IP = "192.168.1.100"
 PUBLIC_IP = "2409:4060:2e14:51b4:6187:b0a4:c632:18dd"
 NGROK_TUNNEL = "https://eggshell-wrecking-jingle.ngrok-free.dev" ## tunneling to localhost:8000
 
-def get_ara_prompt_e1():
-    system_instructions = """
-    ROLE:
-    You are an automated ML training monitoring agent.
-
-    OBJECTIVE:
-    Continuously analyze the latest machine learning training logs
-    and determine whether a debugging workflow should be triggered.
-
-    INSTRUCTIONS:
-    1. Read the most recent training logs using the available tools.
-    2. Identify abnormal patterns in training behavior.
-    3. Decide whether a debugging trigger is required.
-    4. Give proper and brief reasoning behind the trigger decision
-
-    TRIGGER CONDITIONS (examples):
-    - Loss becomes NaN
-    - Loss increases continuously
-    - Accuracy drops significantly
-    - Training diverges
-    - Unexpected runtime errors appear
-
-    OUTPUT FORMAT:
-    Return ONLY valid JSON in the following schema:
-
-    {"utc_timestamp": "<ISO-8601 UTC time>", "epoch": "<int>", "train_loss": <float>, "is_trigger": true or false, "trigger_reason": <str>}
-
-    RULES:
-    - Do not include explanations outside JSON.
-    - Always include UTC timestamp.
-    - Always include current training epoch, read it from the training logs
-    - Always include current training loss, read it from the training logs
-    - Always return valid JSON.
-    """
-    
-    return system_instructions
-
-def get_ara_prompt_e2():
+def get_ara_prompt_e3():
     
     system_instructions = """
+    
     ROLE:
-    You are an automated ML training monitoring agent.
+    ML Training Monitor Agent.
 
-    OBJECTIVE:
-    Continuously analyze historical training logs and determine whether
-    a debugging workflow should be triggered based on current behavior
-    and recent training trends.
+    TOOLS:
+    You MUST call these tools every run:
 
-    --------------------------------------------------
-
-    DATA SOURCE:
-
-    You MUST call read_train_logs().
-
-    The tool returns a JSON object in this structure:
-
+    1. read_train_logs()
+    Returns:
     {
-    "ml_model_training_logs": [
-            {
-            "epoch": <int>,
-            "train_loss": <float>,
-            "val_loss": <float>,
-            "val_accuracy": <float>,
-            "avg_grad_norm": <float>
-            }, ...
-            ]
+        "ml_model_training_logs": [
+        {
+            "epoch": int,
+            "train_loss": float,
+            "val_loss": float,
+            "val_accuracy": float,
+            "avg_grad_norm": float
+        }
+        ]
     }
 
-    IMPORTANT:
+    2. retrieve_prior_run_context()
+    Returns previous run info (optional).
 
-    • The "epochs" list contains historical training records.
-    • The LAST element in "epochs" is the CURRENT epoch.
-    • Previous elements represent historical training behavior.
-
-    Use:
-
-    Current epoch → epochs[-1]
-
-    Previous epoch → epochs[:-2] (if available)
+    3. utc_now()
+    Returns current UTC time.
 
     --------------------------------------------------
 
-    ANALYSIS LOGIC:
+    STEP ORDER (MANDATORY):
 
-    Always perform the following steps:
+    1. Call read_train_logs()
+    2. Call utc_now()
+    3. Read logs list
+    4. Set:
 
-    1. Read the full epochs history.
-    2. Identify the CURRENT epoch using epochs[-1].
-    3. Use earlier epochs to analyze trends.
-    4. Determine whether training behavior is abnormal.
-    5. Decide whether to trigger debugging.
+    current_epoch = logs[-1]
+    previous_epochs = logs[:-1]
+
+    5. Extract:
+
+    epoch = current_epoch.epoch
+    train_loss = current_epoch.train_loss
+    val_loss = current_epoch.val_loss
+    val_accuracy = current_epoch.val_accuracy
+    grad_norm = current_epoch.avg_grad_norm
 
     --------------------------------------------------
 
-    TREND-BASED TRIGGER CONDITIONS:
+    TRIGGER RULES:
 
-    Trigger debugging if ANY condition occurs:
+    Set is_trigger = true if ANY condition happens.
 
-    CRITICAL CONDITIONS:
+    CRITICAL:
 
-    • train_loss is NaN or null
-    • val_loss is NaN or null
-    • avg_grad_norm is extremely large
-    • training diverges suddenly
+    - train_loss is NaN
+    - val_loss is NaN
+    - grad_norm is extremely large
+    - loss jumps suddenly
 
-    TREND CONDITIONS:
+    TREND:
 
-    • train_loss increases for multiple consecutive epochs
-    • val_loss increases across recent epochs
-    • val_accuracy drops significantly
-    • gradients grow rapidly across epochs
-    • loss stops improving unexpectedly
+    - val_loss increasing for 3+ epochs
+    - train_loss increasing for 3+ epochs
+    - val_accuracy drops significantly
+    - loss stopped improving
 
-    SAFE CONDITIONS:
+    Otherwise:
 
-    If training is stable or improving:
     is_trigger = false
 
     --------------------------------------------------
 
     OUTPUT FORMAT:
 
-    Return ONLY valid JSON.
-
-    No markdown.
-    No explanations.
-    No extra text.
-
-    Schema:
+    Return ONLY JSON.
 
     {
-    "utc_timestamp": "<ISO-8601 UTC time>",
-    "epoch": <int>,
-    "train_loss": <float>,
+    "utc_timestamp": "<from utc_now()>",
+    "epoch": <epoch>,
+    "train_loss": <train_loss>,
     "is_trigger": true or false,
-    "trigger_reason": "<brief reasoning>"
+    "trigger_reason": "<short reason>"
     }
 
-    --------------------------------------------------
+    RULES:
 
-    MANDATORY RULES:
-
-    • Always call read_train_logs()
-    • Always identify current epoch using epochs[-1]
-    • Always extract:
-
-    epoch → epochs[-1].epoch
-    train_loss → epochs[-1].train_loss
-
-    • Use historical epochs ONLY for trend detection
-    • Never invent values
-    • Never assume missing values
-    • Never default epoch to 0 unless present in logs
-    • Always use utc_now() to obtain current time
-    • Output ONLY JSON
-
-    Avoid long explanations.
+    - Always use logs[-1] as current epoch
+    - Never guess values
+    - Never skip tool calls
+    - Never output text outside JSON
     """
 
     return system_instructions
 
 
+def llm_caching_prompt():
+    system_instruction = """
+    ROLE:
+    ML training monitor with memory.
+
+    TOOLS:
+    Call:
+    - read_previous_state_llm_summary()  -> previous state
+    - read_train_logs()   -> current epoch log
+    - utc_now()           -> current time
+
+    --------------------------------
+
+    INPUT:
+
+    previous_state = read_previous_state_llm_summary()
+
+    current_epoch = read_train_logs()
+
+    Use:
+
+    epoch
+    train_loss
+    val_loss
+    val_accuracy
+    avg_grad_norm
+
+    --------------------------------
+
+    TASK:
+
+    1. Compare current val_loss with previous state.
+    2. Decide if training is worsening.
+    3. Update internal state.
+    4. Trigger if performance worsens repeatedly.
+
+    --------------------------------
+
+    STATE SHOULD TRACK:
+
+    - best_val_loss
+    - last_val_loss
+    - worsening_streak
+
+    If no previous state exists:
+    Initialize using current val_loss.
+
+    --------------------------------
+
+    TRIGGER LOGIC:
+
+    Trigger if:
+
+    - val_loss increases for multiple epochs
+    OR
+    - val_loss is much worse than best_val_loss
+    OR
+    - accuracy drops repeatedly
+
+    Otherwise:
+    Do not trigger.
+
+    --------------------------------
+
+    OUTPUT:
+
+    Return ONLY JSON:
+
+    {
+    "utc_timestamp": "<utc_now()>",
+    "epoch": epoch,
+    "train_loss": train_loss,
+    "is_trigger": true or false,
+    "trigger_reason": "<short reason>",
+    "updated_state_summary": "<descriptive summary until the current training state in words | 'str' type>"
+    }
+
+    RULES:
+
+    - Always read previous_state
+    - Always use latest epoch log information
+    - Make decision logically
+    - Output JSON only
+    """
+
+    return system_instruction
+
 @ara.tool
 def utc_now():
     from datetime import datetime, timezone
-    """provides the UTC time"""
+    """provides the current UTC time"""
     return {"utc_time": datetime.now(timezone.utc).isoformat()}
 
 
@@ -197,23 +223,61 @@ def read_train_logs():
     
     print('realtime-train-logs-read')
     
-    
     NGROK_TUNNEL = "https://eggshell-wrecking-jingle.ngrok-free.dev"
     api_path = f"{NGROK_TUNNEL}/training_logs"
     try:
         with urlopen(api_path) as response:
             train_logs_json = json.loads(response.read().decode())    
-        train_logs_json = train_logs_json['epochs']
-                
-        return {'ml_model_training_logs': train_logs_json}
+        train_logs_epochs = train_logs_json['epochs']
+        train_logs_epochs = train_logs_epochs[-1] ## state-machine       
+        return {'ml_model_training_logs': train_logs_epochs}
     
     except Exception as e:
         print("ACTUAL ERROR:", repr(e))
         raise e                        
+
+@ara.tool
+def read_previous_state_llm_summary():
+    """returns previous state LLM summary/cache of the ML model training"""
+    import json
+    from urllib.request import urlopen
     
+    NGROK_TUNNEL = "https://eggshell-wrecking-jingle.ngrok-free.dev"
+    api_path = f"{NGROK_TUNNEL}/llm_cache"
+    try:
+        with urlopen(api_path) as response:
+            logs_json = json.loads(response.read().decode())    
+        ## previous-state-cache
+        logs_llm = logs_json['ara_monitor_decision']['result']['output_text']['updated_state_summary']
+        return {'previous_state_llm_summary_cache': logs_llm}
+    
+    except Exception as e:
+        print("ACTUAL ERROR:", repr(e))
+        raise e                        
+
+@ara.tool
+def retrieve_prior_run_context():
+    """returns the prior agent run context"""
+    import json
+    from urllib.request import urlopen
+    
+    print('realtime-train-logs-read')
+    
+    NGROK_TUNNEL = "https://eggshell-wrecking-jingle.ngrok-free.dev"
+    api_path = f"{NGROK_TUNNEL}/prior_context"
+    try:
+        with urlopen(api_path) as response:
+            train_logs_context = json.loads(response.read().decode())    
+            
+        return train_logs_context
+    
+    except Exception as e:
+        print("ACTUAL ERROR:", repr(e))
+        raise e     
+
 ara.Job(
     "ara-monitor-agent", ## triggers on train-errors
-    system_instructions=(get_ara_prompt_e2())
+    system_instructions=(llm_caching_prompt())
 )
 
 
@@ -234,8 +298,33 @@ if __name__ == '__main__':
         with open(train_path, 'r') as f:
             train_logs_json = json.load(f)
         f.close()
+            
         return train_logs_json
-
+    
+    @api_app.get('/prior_context')
+    def get_prior_context_api(prior_context_path=PRIOR_CONTEXT_PATH):
+        import json
+        if os.path.exists(prior_context_path):
+            with open(prior_context_path, 'rb') as f:
+                prior_context = pkl.load(f)
+            f.close()
+        else:
+            prior_context = ''
+        return {'prior_context' : prior_context}
+    
+    @api_app.get('/llm_cache')
+    def get_prior_context_api(decision_path=DECISION_LOG_SAVE_PATH):
+        import json
+        if os.path.exists(decision_path):
+            with open(decision_path, 'r') as f:
+                logs = json.load(f)['ara_monitor_decision']['result']['output_text']
+                logs = json.loads(logs)
+            f.close()
+            llm_summ = logs['updated_state_summary']
+        else:
+            llm_summ = 'State-Just-Initialized'
+        return {'previous_state_llm_summary_cache' : llm_summ}
+        
     ## serve
     def api_serve(port=8000):
         print(f'serving-train-log-API at 0.0.0.0:{port}')
@@ -291,8 +380,11 @@ if __name__ == '__main__':
         print('deregistered-ara-cloud')
 
     ## cyclic-run // trigger with patience (p)
-    def save_ara_logs(log_save_path=DECISION_LOG_SAVE_PATH):
+    def save_ara_logs(log_save_path=DECISION_LOG_SAVE_PATH, call_patience_threshold=3):
         """returns decision logs"""
+        
+        epoch_threshold = call_patience_threshold
+        call_patience = 0
         
         ## runs N-cycles locally
         for i in range(10):
@@ -310,13 +402,15 @@ if __name__ == '__main__':
             out_stream_decision = clean_ara_stdout(out_stream["ara_monitor_decision"]["result"]["output_text"])
             
             ## min-epoch-execution-patience
-            if out_stream_decision['epoch'] > 3: ## epoch-threshold (tune)            
+            if (out_stream_decision['epoch'] > epoch_threshold) and (call_patience > call_patience_threshold): ## epoch-threshold (tune)            
                 ## parallel-execution-trigger
                 if out_stream_decision["is_trigger"]:
                     print('<Parallel> Triggered & Running ...')
-                run_adjoin_code_parallel(is_train=False)
+                    run_adjoin_code_parallel(is_train=False)
+                    call_patience = 0
             
             # run_deregister_cloud() ## cause the cloud registered state is fixed in the runtime
+            call_patience += 1
             time.sleep(10) ## force 5mins retrieval-wait
     
     ## serve-local-api-endpoint

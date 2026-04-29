@@ -122,7 +122,7 @@ def train_imbalanced_mnist():
         print(f"Epoch {epoch}/{epochs_len} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f}")
 
         ## forceful-delayed-execution
-        time.sleep(3*60)
+        time.sleep(1)
         
     # with open("model/logs/training_logs.json", "w") as f:
     #     json.dump(logs, f, indent=4)

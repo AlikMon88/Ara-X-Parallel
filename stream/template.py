@@ -8,6 +8,8 @@ from langchain_core.messages import HumanMessage, AIMessage
 import sys
 from . import prompts as pmp    
 from pathlib import Path
+import time
+import signal
 
 _BASE_DIR_ = Path(__file__).parents[0]
 STORE_FINAL_RESPONSE = _BASE_DIR_ / 'stream_output' / 'final_response.txt'
@@ -165,14 +167,14 @@ def stream_frontend_parallel(load_llm):
                 st.chat_message("assistant").markdown(agent_reply.content)
                 st.session_state.chat_history.append(agent_reply)
 
+    if final_report:
+        print('waiting-to-terminate-sesssion ....')
+        time.sleep(60)
+        os.kill(os.getpid(), signal.SIGTERM)
 
 
 if __name__ == '__main__':
     llm = load_llm(model_name='openai')
-    
-    # with open(STORE_FINAL_RESPONSE, 'w') as f:
-    #     pkl.dump('abc', f)
-        
     
         
     
