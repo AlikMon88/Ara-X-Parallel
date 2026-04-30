@@ -3,10 +3,31 @@
     "epochs": [
         {
             "epoch": 1,
-            "train_loss": 0.1817,
-            "val_loss": 1.6069,
-            "val_accuracy": 0.4918,
-            "avg_grad_norm": 0.6603
+            "train_loss": 0.1846,
+            "val_loss": 1.3306,
+            "val_accuracy": 0.5695,
+            "avg_grad_norm": 0.6964
+        },
+        {
+            "epoch": 2,
+            "train_loss": 0.0513,
+            "val_loss": 0.8657,
+            "val_accuracy": 0.7377,
+            "avg_grad_norm": 0.4269
+        },
+        {
+            "epoch": 3,
+            "train_loss": 0.0295,
+            "val_loss": 0.6819,
+            "val_accuracy": 0.7965,
+            "avg_grad_norm": 0.3502
+        },
+        {
+            "epoch": 4,
+            "train_loss": 0.0188,
+            "val_loss": 0.76,
+            "val_accuracy": 0.7778,
+            "avg_grad_norm": 0.2765
         }
     ]
 }

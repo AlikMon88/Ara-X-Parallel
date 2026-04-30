@@ -197,13 +197,13 @@ def llm_caching_prompt():
     "train_loss": train_loss,
     "is_trigger": true or false,
     "trigger_reason": "<short reason>",
-    "updated_state_summary": "<descriptive summary until the current training state in words | 'str' type>"
+    "updated_state_summary": "<explorative descriptive summary until the current training state in words>"
     }
 
     RULES:
 
     - Always read previous_state
-    - Always use latest epoch log information
+    - Always use last epoch log information
     - Make decision logically
     - Output JSON only
     """
@@ -318,7 +318,7 @@ if __name__ == '__main__':
         if os.path.exists(decision_path):
             with open(decision_path, 'r') as f:
                 logs = json.load(f)['ara_monitor_decision']['result']['output_text']
-                logs = json.loads(logs)
+                logs = clean_ara_stdout(logs)
             f.close()
             llm_summ = logs['updated_state_summary']
         else:
