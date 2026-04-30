@@ -28,9 +28,13 @@ def wrap_outer_prompt(func):
             final_response = pkl.load(f)
 
         final_response = func(final_response, *args, **kwargs)
-
+        def prior_prompt():
+            _prior_prompt = """Create a minimalistic, clean diagnostic report webpage with professional typography, subtle color palette, and card-based sections. Use good whitespace, 
+            clear hierarchy with numbered sections, and a data-focused layout. Style should be modern, readable, and suitable for technical analysis reports"""
+            return _prior_prompt
+        
         response = f"""
-        Create a simple and Minimalistic Webpage to show the MODEL TRAINING DIAGNOSTIC AND ROOT CAUSE ANALYSIS using the provided information
+        {prior_prompt()}\n\n
 
         {final_response}
 
