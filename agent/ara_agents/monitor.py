@@ -313,7 +313,7 @@ if __name__ == '__main__':
         return {'prior_context' : prior_context}
     
     @api_app.get('/llm_cache')
-    def get_prior_context_api(decision_path=DECISION_LOG_SAVE_PATH):
+    def get_previous_state_llm_summary_cache(decision_path=DECISION_LOG_SAVE_PATH):
         import json
         if os.path.exists(decision_path):
             with open(decision_path, 'r') as f:

@@ -3,17 +3,10 @@
     "epochs": [
         {
             "epoch": 1,
-            "train_loss": 0.1656,
-            "val_loss": 1.3603,
-            "val_accuracy": 0.5444,
-            "avg_grad_norm": 0.6616
-        },
-        {
-            "epoch": 2,
-            "train_loss": 0.0539,
-            "val_loss": 0.9009,
-            "val_accuracy": 0.7263,
-            "avg_grad_norm": 0.4323
+            "train_loss": 0.1817,
+            "val_loss": 1.6069,
+            "val_accuracy": 0.4918,
+            "avg_grad_norm": 0.6603
         }
     ]
 }

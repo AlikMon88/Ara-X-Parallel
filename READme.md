@@ -42,8 +42,7 @@ Example report:
 
 <p align="center">
   <img src="snaps/pic_1.png" width="32%" />
-  <img src="snaps/pic_ara_1.png" width="32%" />
-  <img src="snaps/pic_ara_2.png" width="32%" />
+  <img src="snaps/pic_ara_1.png" width="62%"/>
 </p>
 
 ---
