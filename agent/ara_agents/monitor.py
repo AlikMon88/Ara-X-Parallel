@@ -402,7 +402,7 @@ if __name__ == '__main__':
             out_stream_decision = clean_ara_stdout(out_stream["ara_monitor_decision"]["result"]["output_text"])
             
             ## min-epoch-execution-patience
-            if (out_stream_decision['epoch'] > epoch_threshold) and (call_patience > call_patience_threshold): ## epoch-threshold (tune)            
+            if (out_stream_decision['epoch'] >= epoch_threshold) and (call_patience >= call_patience_threshold): ## epoch-threshold (tune)            
                 ## parallel-execution-trigger
                 if out_stream_decision["is_trigger"]:
                     print('<Parallel> Triggered & Running ...')
