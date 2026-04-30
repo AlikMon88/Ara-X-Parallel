@@ -176,9 +176,11 @@ def llm_caching_prompt():
 
     - val_loss increases for multiple epochs
     OR
-    - val_loss is much worse than best_val_loss
+    - val_loss is much worse (greater) than best_val_loss (new val_loss > historical average)
     OR
-    - accuracy drops repeatedly
+    - val_accuracy / train_accuracy drops repeatedly
+    OR 
+    - average grad norm is unstable (really large / really small)
 
     Otherwise:
     Do not trigger.
@@ -385,7 +387,7 @@ if __name__ == '__main__':
         call_patience = 0
         
         ## runs N-cycles locally
-        for i in range(20):
+        for i in range(40):
             
             out_stream = run_ara_monitor_subprocess()
             
@@ -404,12 +406,12 @@ if __name__ == '__main__':
                 ## parallel-execution-trigger
                 if out_stream_decision["is_trigger"]:
                     print('<Parallel> Triggered & Running ...')
-                run_adjoin_code_parallel(is_train=False)
-                call_patience = 0
+                    run_adjoin_code_parallel(is_train=False)
+                    call_patience = 0
             
             # run_deregister_cloud() ## cause the cloud registered state is fixed in the runtime
             call_patience += 1
-            time.sleep(10) ## force 5mins retrieval-wait
+            time.sleep(45) ## force 5mins retrieval-wait
     
     ## serve-local-api-endpoint
     api_serve() ## local:8000 port

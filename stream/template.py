@@ -10,6 +10,7 @@ from . import prompts as pmp
 from pathlib import Path
 import time
 import signal
+from agent.ara_agents.sms import *
 
 _BASE_DIR_ = Path(__file__).parents[0]
 STORE_FINAL_RESPONSE = _BASE_DIR_ / 'stream_output' / 'final_response.txt'
@@ -131,11 +132,6 @@ def stream_frontend_parallel(load_llm):
         
         with st.status("Parallel: AI Agent analyzing the recent training run ... ", expanded=True) as status:
             
-            ### Expand and discretize the tooling pipelining || show them in st.success green
-            # response = st.session_state.agent.invoke({"messages": [HumanMessage(content=intitial_instruction)]})
-            # final_report = response["messages"][-1].content
-            
-            ## UI-improve
             final_report = render_agent_stream(st.session_state.agent, [HumanMessage(content=intitial_instruction)])
             
             if final_report is None:
@@ -147,6 +143,8 @@ def stream_frontend_parallel(load_llm):
                 pkl.dump(final_report, f)
             f.close()
             print('saved-final-response')
+            print('send-WA-condensed-report')
+            send_WA_message()
             status.update(label="Diagnosis Complete!", state="complete", expanded=False)
                 
     for msg in st.session_state.chat_history:

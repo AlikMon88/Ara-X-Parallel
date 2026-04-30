@@ -67,7 +67,7 @@ def train_imbalanced_mnist():
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     logs = {"run_info": "MNIST Categorical Classification", "epochs":[]}
-    epochs_len = 15
+    epochs_len = 20
     
     for epoch in range(1, epochs_len + 1):  
         model.train()
@@ -122,7 +122,7 @@ def train_imbalanced_mnist():
         print(f"Epoch {epoch}/{epochs_len} - Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.4f}")
 
         ## forceful-delayed-execution
-        time.sleep(1)
+        time.sleep(3.0 * 60)
         
     # with open("model/logs/training_logs.json", "w") as f:
     #     json.dump(logs, f, indent=4)

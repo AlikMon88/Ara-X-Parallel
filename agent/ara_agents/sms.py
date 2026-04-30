@@ -83,14 +83,12 @@ def WA_Sandbox_run(body_pass):
     
     return message
 
-if __name__ == '__main__':
-    
+def send_WA_message():
     response = get_condense_mssg()
-    print(response)
-    
     message = WA_Sandbox_run(body_pass=response)
-    # message = call_free_twilio(body_pass=response)
-     
     print("Message SID:", message.sid)
+ 
     
+if __name__ == '__main__':
+    send_WA_message()
     
